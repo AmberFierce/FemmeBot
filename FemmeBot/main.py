@@ -29,7 +29,10 @@ intents.guilds = True
 intents.members = True
 intents.reactions = True
 
-bot = commands.Bot(command_prefix='!', intents=intents)
+prefix = os.environ.get("BOT_PREFIX", "!")
+bot = commands.Bot(command_prefix=prefix, intents=intents)
+print(f"✅ Bot prefix set to: {prefix}")
+
 cooldowns = {}
 
 # === Load & Save JSON ===
