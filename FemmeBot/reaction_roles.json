@@ -1,0 +1,72 @@
+{
+    "1367099485037269092": {
+        "1367280222734516296": {
+            "\u2764\ufe0f": "She/Her",
+            "\ud83d\udc99": "He/Him",
+            "\ud83d\udc9b": "They/Them",
+            "\ud83d\udc9c": "She/They",
+            "\ud83d\udda4": "He/They",
+            "\ud83e\udd0d": "He/She",
+            "\ud83e\udde1": "Any Pronouns",
+            "\ud83d\udc9a": "Ask Me / No Preference"
+        },
+        "1367291790876606524": {
+            "\ud83d\udeba": "Female",
+            "\ud83d\udeb9": "Male",
+            "\ud83d\udc9c": "Bigender",
+            "\ud83d\udc68\u200d\ud83e\uddb0": "FtM",
+            "\ud83d\udc69\u200d\ud83e\uddb0": "MtF",
+            "\ud83e\uddd1": "Non-Binary",
+            "\ud83c\udf0a": "Genderfluid",
+            "\ud83d\udc60": "Crossdresser",
+            "\ud83d\udfe0": "Other Gender Marker"
+        },
+        "1368025901605847111": {
+            "\u26a7\ufe0f": "Trans",
+            "\ud83d\udc60": "Femme",
+            "\ud83d\udc57": "Crossdresser",
+            "\ud83d\udc85": "Sissy",
+            "\ud83d\udc84": "Trap",
+            "\ud83e\ude70": "Bimbo",
+            "\ud83c\udff3\ufe0f\u200d\u26a7\ufe0f": "Trans"
+        },
+        "1368027347646681210": {
+            "\ud83c\udff3\ufe0f\u200d\u26a7\ufe0f": "Trans",
+            "\ud83d\udc60": "Femme",
+            "\ud83d\udc57": "Crossdresser",
+            "\ud83d\udc85": "Sissy",
+            "\ud83d\udc84": "Trap",
+            "\ud83e\ude70": "Bimbo"
+        },
+        "1368028551600799885": {
+            "\ud83d\udd8c\ufe0f": "Artist",
+            "\ud83d\udcf7": "Photographer",
+            "\ud83c\udfa4": "Performer",
+            "\ud83c\udfbc": "Musician",
+            "\ud83c\udfa7": "DJ / Producer",
+            "\ud83c\udfae": "Streamer",
+            "\ud83d\udcdd": "Writer",
+            "\ud83d\udda5\ufe0f": "Coder",
+            "\ud83d\udcf8": "Content Creator"
+        },
+        "1368031123397021787": {
+            "\u2705": "DMs - Open",
+            "\u274c": "DMs - Closed",
+            "\u2753": "DMs - Ask in chat first"
+        },
+        "1368040082316988486": {
+            "\ud83c\udfc8": "NFL",
+            "\u26bd": "Football",
+            "\ud83e\udd3c": "Wrestling",
+            "\ud83c\udfcc\ufe0f": "Golf",
+            "\ud83c\udfcf": "Cricket",
+            "\ud83c\udfce\ufe0f": "F1",
+            "\ud83c\udfb1": "Snooker",
+            "\ud83c\udfc9": "Rugby",
+            "\u26be": "Baseball",
+            "\ud83c\udfc0": "Basketball",
+            "\ud83e\udd4b": "Combat Sports",
+            "\ud83c\udfd2": "Hockey"
+        }
+    }
+}
