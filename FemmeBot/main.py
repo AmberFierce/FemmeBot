@@ -472,9 +472,8 @@ async def on_raw_reaction_remove(payload):
                 await member.remove_roles(role)
 
 # === Launch the bot ===
-if __name__ == "__main__":
-    TOKEN = os.environ.get("DISCORD_TOKEN")
-    if not TOKEN:
-        print("❌ DISCORD_TOKEN not found in environment variables.")
-    else:
-        bot.run(TOKEN)
+TOKEN = os.environ.get("DISCORD_TOKEN")
+if not TOKEN:
+    print("❌ DISCORD_TOKEN not found in environment variables.")
+else:
+    bot.run(TOKEN)
