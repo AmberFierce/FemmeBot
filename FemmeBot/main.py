@@ -101,33 +101,36 @@ role_rewards = {2: "Gaining Traction", 3: "New Face", 8: "Regular"}
 
 unlock_messages = {
     2: (
-        "🔓 Level 2 unlocked! – you're **gaining traction**!  
-        You’ve stepped off the sidelines and into the glow-up. You now have access to:
+        """🔓 Level 2 unlocked! – you're **gaining traction**!  
+You’ve stepped off the sidelines and into the glow-up. You now have access to:
 
-        - <#1367154605079441489> – 🌸 Say hi, you gorgeous thing! Tell us about yourself and let us love you for it. This is your red carpet!  
-        - <#1367160953224958083> – 🎯 Pick your flavour. Pronouns, gender, topics—claim what fits and unlock your side of the server.
+- <#1367154605079441489> – 🌸 Say hi, you gorgeous thing! Tell us about yourself and let us love you for it. This is your red carpet!  
+- <#1367160953224958083> – 🎯 Pick your flavour. Pronouns, gender, topics—claim what fits and unlock your side of the server.
 
-        🎤 Posting your intro will give you enough XP to unlock Main Chat and the rest of the community. Go on — your spotlight’s waiting."
+🎤 Posting your intro will give you enough XP to unlock Main Chat and the rest of the community. Go on — your spotlight’s waiting."""
     ),
 
     3: (
-        "✨ Level 3 achieved — you’re now a **New Face**!\n"
-        "Welcome to the main community. You now have access to:\n\n"
-        "- <#1367154656005849088> – 🧃 Pull up a chair and chat! Anything goes (within the rules) — life, laughs, and late-night rambling welcome. Keep it SFW.\n"
-        "- <#1367283783166070939> – 💄 Blush it, beat it, blend it. Tips, looks, reviews, and progress pics—from baby’s first wing to full glam.\n"
-        "- <#1367283861427327079> – 👗 Serve a look. Discuss outfits, styling, trends, and big fashion feelings. Zero judgement, all expression.\n"
-        "- <#1367283982601031730> – 📌 Pin it to win it. Moodboards, aesthetic dumps, dream fits—drop your vision, even if it’s not in your wardrobe (yet).\n"
-        "- <#1368160585677668362> – 💅 Nails, claws, tips, and talons — show off your sets, inspo, polish picks, or press-on finds. Whether you're rocking subtle femme or full glam stiletto, this is your canvas.\n"
-        "- <#1367161557796257813> – 🐸 Unleash chaos. The good kind. Memes, roasts, inside jokes, cursed TikToks—bring it.\n\n"
-        "Dive in and make yourself at home! 💅🔥"
+        """✨ Level 3 achieved — you’re now a **New Face**!
+Welcome to the main community. You now have access to:
+
+- <#1367154656005849088> – 🧃 Pull up a chair and chat! Anything goes (within the rules) — life, laughs, and late-night rambling welcome. Keep it SFW.
+- <#1367283783166070939> – 💄 Blush it, beat it, blend it. Tips, looks, reviews, and progress pics—from baby’s first wing to full glam.
+- <#1367283861427327079> – 👗 Serve a look. Discuss outfits, styling, trends, and big fashion feelings. Zero judgement, all expression.
+- <#1367283982601031730> – 📌 Pin it to win it. Moodboards, aesthetic dumps, dream fits—drop your vision, even if it’s not in your wardrobe (yet).
+- <#1368160585677668362> – 💅 Nails, claws, tips, and talons — show off your sets, inspo, polish picks, or press-on finds. Whether you're rocking subtle femme or full glam stiletto, this is your canvas.
+- <#1367161557796257813> – 🐸 Unleash chaos. The good kind. Memes, roasts, inside jokes, cursed TikToks—bring it.
+
+Dive in and make yourself at home! 💅🔥"""
     ),
 
     8: (
-        "🔥 Level 8 unlocked — you’re officially a **Regular**!\n"
-        "You’ve earned your heels and your confidence. Welcome to the next tier:\n\n"
-        "- <#1367154534048333875> – 📸 Show us your look! Hair, makeup, a new outfit—or just your beautiful self. No filters required, just femme realness.\n"
-        "- <#1367280060717072464> – 🦋 Your journey, your pace. A supportive space to talk hormones, changes, dysphoria, euphoria, surgeries, or just vent. No gatekeeping, just sisterhood.\n"
-        "- <#1367169336892063814> – 😈 Wanna get spicy? Start your NSFW journey here by verifying with the mods. Keep it classy and sexy."
+        """🔥 Level 8 unlocked — you’re officially a **Regular**!
+You’ve earned your heels and your confidence. Welcome to the next tier:
+
+- <#1367154534048333875> – 📸 Show us your look! Hair, makeup, a new outfit—or just your beautiful self. No filters required, just femme realness.
+- <#1367280060717072464> – 🦋 Your journey, your pace. A supportive space to talk hormones, changes, dysphoria, euphoria, surgeries, or just vent. No gatekeeping, just sisterhood.
+- <#1367169336892063814> – 😈 Wanna get spicy? Start your NSFW journey here by verifying with the mods. Keep it classy and sexy."""
     )
 }
 
