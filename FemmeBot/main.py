@@ -120,6 +120,7 @@ Welcome to the main community. You now have access to:
 - <#1367283982601031730> – 📌 Pin it to win it. Moodboards, aesthetic dumps, dream fits—drop your vision, even if it’s not in your wardrobe (yet).
 - <#1368160585677668362> – 💅 Nails, claws, tips, and talons — show off your sets, inspo, polish picks, or press-on finds. Whether you're rocking subtle femme or full glam stiletto, this is your canvas.
 - <#1367161557796257813> – 🐸 Unleash chaos. The good kind. Memes, roasts, inside jokes, cursed TikToks—bring it.
+- <#1369377952143376424> – 🐾 Show us your floofs, gremlins, scaled companions, or mystery creatures. Pics, stories, chaos—every femme needs a familiar.
 
 Dive in and make yourself at home! 💅🔥"""
     ),
