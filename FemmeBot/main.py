@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from discord.ext import tasks
 from discord.ui import View, Button
 import os
 import json
@@ -34,6 +35,35 @@ bot = commands.Bot(command_prefix=prefix, intents=intents)
 print(f"✅ Bot prefix set to: {prefix}")
 
 cooldowns = {}
+
+@tasks.loop(minutes=1)
+async def award_voice_xp():
+    for guild in bot.guilds:
+        for vc in guild.voice_channels:
+            for member in vc.members:
+                if member.bot:
+                    continue
+                voice = member.voice
+                if not voice or voice.self_mute or voice.self_deaf or voice.mute or voice.deaf:
+                    continue
+
+                gid = str(guild.id)
+                uid = str(member.id)
+
+                if gid not in levels:
+                    levels[gid] = {}
+                if uid not in levels[gid]:
+                    levels[gid][uid] = {"xp": 0, "level": 1, "intro_bonus": False}
+
+                user_data = levels[gid][uid]
+                user_data["xp"] += 1  # 1 XP per minute in voice
+
+                dummy_channel = guild.system_channel or guild.text_channels[0]
+                if dummy_channel:
+                    await check_level_up(member, guild, user_data, dummy_channel)
+
+    save_levels()
+
 
 # === Load & Save JSON ===
 def load_json(filename, default={}):
@@ -71,28 +101,36 @@ role_rewards = {2: "Gaining Traction", 3: "New Face", 8: "Regular"}
 
 unlock_messages = {
     2: (
-        "🎉 You're now Level 2 (**Gaining Traction**)! You should now see "
-        "<#1367154605079441489> (**Introductions**) and <#1367154633989554206> (**Grab Your Roles**) — "
-        "come say hi and choose your interests! 💖"
+        "🔓 Level 2 unlocked! – you're **gaining traction**!  
+        You’ve stepped off the sidelines and into the glow-up. You now have access to:
+
+        - <#1367154605079441489> – 🌸 Say hi, you gorgeous thing! Tell us about yourself and let us love you for it. This is your red carpet!  
+        - <#1367160953224958083> – 🎯 Pick your flavour. Pronouns, gender, topics—claim what fits and unlock your side of the server.
+
+        🎤 Posting your intro will give you enough XP to unlock Main Chat and the rest of the community. Go on — your spotlight’s waiting."
     ),
 
     3: (
-        "✨ Level 3 achieved — you’re now a **New Face**! Welcome to the main community. "
-        "You now have access to:\n"
-        "- <#1367154656005849088> main chat\n"
-        "- <#1367283783166070939> makeup\n"
-        "- <#1367283861427327079> fashion\n"
-        "- <#1367283982601031730> outfit inspo\n"
-        "- <#1367161557796257813> memes and shitposting\n"
-        "Dive in and make yourself at home! 💅"
+        "✨ Level 3 achieved — you’re now a **New Face**!\n"
+        "Welcome to the main community. You now have access to:\n\n"
+        "- <#1367154656005849088> – 🧃 Pull up a chair and chat! Anything goes (within the rules) — life, laughs, and late-night rambling welcome. Keep it SFW.\n"
+        "- <#1367283783166070939> – 💄 Blush it, beat it, blend it. Tips, looks, reviews, and progress pics—from baby’s first wing to full glam.\n"
+        "- <#1367283861427327079> – 👗 Serve a look. Discuss outfits, styling, trends, and big fashion feelings. Zero judgement, all expression.\n"
+        "- <#1367283982601031730> – 📌 Pin it to win it. Moodboards, aesthetic dumps, dream fits—drop your vision, even if it’s not in your wardrobe (yet).\n"
+        "- <#1368160585677668362> – 💅 Nails, claws, tips, and talons — show off your sets, inspo, polish picks, or press-on finds. Whether you're rocking subtle femme or full glam stiletto, this is your canvas.\n"
+        "- <#1367161557796257813> – 🐸 Unleash chaos. The good kind. Memes, roasts, inside jokes, cursed TikToks—bring it.\n\n"
+        "Dive in and make yourself at home! 💅🔥"
     ),
 
     8: (
-        "😈 You’ve reached Level 8 and earned the **Regular** role! You now have access to "
-        "<#1367154534048333875> (**SFW Selfies**) 💃\n"
-        "Feeling bold? Head to <#1367169336892063814> to verify for NSFW access. 🔥"
+        "🔥 Level 8 unlocked — you’re officially a **Regular**!\n"
+        "You’ve earned your heels and your confidence. Welcome to the next tier:\n\n"
+        "- <#1367154534048333875> – 📸 Show us your look! Hair, makeup, a new outfit—or just your beautiful self. No filters required, just femme realness.\n"
+        "- <#1367280060717072464> – 🦋 Your journey, your pace. A supportive space to talk hormones, changes, dysphoria, euphoria, surgeries, or just vent. No gatekeeping, just sisterhood.\n"
+        "- <#1367169336892063814> – 😈 Wanna get spicy? Start your NSFW journey here by verifying with the mods. Keep it classy and sexy."
     )
 }
+
 
 INTRO_CHANNEL_ID = 1367154605079441489
 FRESH_MEAT = 1367821643342151710
@@ -161,6 +199,7 @@ async def on_ready():
     print(f"Bot is ready as {bot.user}")
     keep_alive()
     bot.add_view(TicketButtonView())
+    award_voice_xp.start()
 
 @bot.event
 async def on_member_join(member):
