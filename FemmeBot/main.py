@@ -232,24 +232,25 @@ async def on_message(message):
         levels[guild_id][user_id] = {"xp": 0, "level": 1, "intro_bonus": False}
 
     user_data = levels[guild_id][user_id]
-if message.channel.id == INTRO_CHANNEL_ID and not user_data.get("intro_bonus"):
-    user_data["intro_bonus"] = True
 
-    # Guarantee level-up to at least level 3
-    if user_data["level"] < 3:
-        user_data["level"] = 2  # force to level 2
-        user_data["xp"] = get_level_xp(2)  # give enough XP to reach 3
+    if message.channel.id == INTRO_CHANNEL_ID and not user_data.get("intro_bonus"):
+        user_data["intro_bonus"] = True
+
+        # Guarantee level-up to at least level 3
+        if user_data["level"] < 3:
+            user_data["level"] = 2  # force to level 2
+            user_data["xp"] = get_level_xp(2)  # give enough XP to reach 3
+        else:
+            user_data["xp"] += 250  # fallback bonus if they're already level 3+
+
+        await check_level_up(message.author, message.guild, user_data, message.channel)
     else:
-        user_data["xp"] += 250  # fallback bonus if they're already level 3+
-
-    await check_level_up(message.author, message.guild, user_data, message.channel)
-else:
-    user_data["xp"] += random.randint(5, 15)
-    await check_level_up(message.author, message.guild, user_data, message.channel)
-
+        user_data["xp"] += random.randint(5, 15)
+        await check_level_up(message.author, message.guild, user_data, message.channel)
 
     save_levels()
     await bot.process_commands(message)
+
 
 LEVEL_UP_CHANNEL_ID = 1369337415629803621  # 💫 #level-up — glow-up announcements live here
 
