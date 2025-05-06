@@ -232,17 +232,17 @@ async def on_message(message):
         levels[guild_id][user_id] = {"xp": 0, "level": 1, "intro_bonus": False}
 
     user_data = levels[guild_id][user_id]
+
     if message.channel.id == INTRO_CHANNEL_ID and not user_data.get("intro_bonus"):
         user_data["xp"] += 250
         user_data["intro_bonus"] = True
-    await check_level_up(message.author, message.guild, user_data, message.channel)
+        await check_level_up(message.author, message.guild, user_data, message.channel)
     else:
         user_data["xp"] += random.randint(5, 15)
-    await check_level_up(message.author, message.guild, user_data, message.channel)
+        await check_level_up(message.author, message.guild, user_data, message.channel)
 
-save_levels()
-await bot.process_commands(message)
-
+    save_levels()
+    await bot.process_commands(message)
 
 async def check_level_up(member, guild, user_data, channel):
     gid = str(guild.id)
