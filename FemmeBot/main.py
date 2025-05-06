@@ -303,6 +303,51 @@ async def ping(ctx):
     await ctx.send(f"Pong! 🏓 {latency}ms")
 
 @bot.command()
+@commands.has_permissions(manage_guild=True)
+async def setlevel(ctx, member: discord.Member, level: int):
+    gid = str(ctx.guild.id)
+    uid = str(member.id)
+
+    if gid not in levels:
+        levels[gid] = {}
+    if uid not in levels[gid]:
+        levels[gid][uid] = {"xp": 0, "level": 1, "intro_bonus": False}
+
+    levels[gid][uid]["level"] = level
+    levels[gid][uid]["xp"] = 0
+    save_levels()
+
+    # Send unlock message manually if level is in the unlock list
+    if level in unlock_messages:
+        msg = f"{member.mention} is now level {level}!\n{unlock_messages[level]}"
+        level_channel = ctx.guild.get_channel(LEVEL_UP_CHANNEL_ID)
+        if level_channel:
+            await level_channel.send(msg)
+
+    # Apply appropriate role for this level
+    role_map = {
+        2: (FRESH_MEAT, GAINING_TRACTION),
+        3: (GAINING_TRACTION, NEW_FACE),
+        8: (NEW_FACE, REGULAR)
+    }
+
+    if level in role_map:
+        old_role_id, new_role_id = role_map[level]
+        old_role = ctx.guild.get_role(old_role_id)
+        new_role = ctx.guild.get_role(new_role_id)
+
+        if old_role:
+            await member.remove_roles(old_role)
+        if new_role:
+            await member.add_roles(new_role)
+            level_channel = ctx.guild.get_channel(LEVEL_UP_CHANNEL_ID)
+            if level_channel:
+                await level_channel.send(f"{member.mention} was given the **{new_role.name}** role!")
+
+    await ctx.send(f"✅ Set {member.mention}'s level to {level} with 0 XP.")
+
+
+@bot.command()
 async def leaderboard(ctx):
     gid = str(ctx.guild.id)
     if gid not in levels:
