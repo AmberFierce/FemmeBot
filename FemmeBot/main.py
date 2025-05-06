@@ -232,8 +232,7 @@ async def on_message(message):
         levels[guild_id][user_id] = {"xp": 0, "level": 1, "intro_bonus": False}
 
     user_data = levels[guild_id][user_id]
-
-    if message.channel.id == INTRO_CHANNEL_ID and not user_data.get("intro_bonus"):
+if message.channel.id == INTRO_CHANNEL_ID and not user_data.get("intro_bonus"):
     user_data["intro_bonus"] = True
 
     # Guarantee level-up to at least level 3
@@ -244,10 +243,10 @@ async def on_message(message):
         user_data["xp"] += 250  # fallback bonus if they're already level 3+
 
     await check_level_up(message.author, message.guild, user_data, message.channel)
+else:
+    user_data["xp"] += random.randint(5, 15)
+    await check_level_up(message.author, message.guild, user_data, message.channel)
 
-    else:
-        user_data["xp"] += random.randint(5, 15)
-        await check_level_up(message.author, message.guild, user_data, message.channel)
 
     save_levels()
     await bot.process_commands(message)
