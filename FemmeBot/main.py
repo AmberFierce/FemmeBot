@@ -368,24 +368,6 @@ async def givexp(ctx, member: discord.Member, amount: int):
     save_levels()
 
     await ctx.send(f"✅ Gave {amount} XP to {member.mention}. They now have {user_data['xp']} XP at level {user_data['level']}.")
-@bot.command()
-@commands.has_permissions(manage_guild=True)
-async def givexp(ctx, member: discord.Member, amount: int):
-    """Manually give XP to a member. Admins only."""
-    gid = str(ctx.guild.id)
-    uid = str(member.id)
-
-    if gid not in levels:
-        levels[gid] = {}
-    if uid not in levels[gid]:
-        levels[gid][uid] = {"xp": 0, "level": 1, "intro_bonus": False}
-
-    user_data = levels[gid][uid]
-    user_data["xp"] += amount
-    await check_level_up(member, ctx.guild, user_data, ctx.channel)
-    save_levels()
-
-    await ctx.send(f"✅ Gave {amount} XP to {member.mention}. They now have {user_data['xp']} XP at level {user_data['level']}.")
 
 
 @bot.command()
