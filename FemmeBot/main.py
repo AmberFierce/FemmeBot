@@ -244,7 +244,9 @@ async def on_message(message):
     save_levels()
     await bot.process_commands(message)
 
-async def check_level_up(member, guild, user_data, channel):
+LEVEL_UP_CHANNEL_ID = 1369337415629803621  # 💫 #level-up — glow-up announcements live here
+
+async def check_level_up(member, guild, user_data, _):
     gid = str(guild.id)
     current_level = user_data["level"]
     required = get_level_xp(current_level)
@@ -257,7 +259,10 @@ async def check_level_up(member, guild, user_data, channel):
         msg = f"{member.mention} is now level {new_level}!"
         if new_level in unlock_messages:
             msg += f"\n{unlock_messages[new_level]}"
-        await channel.send(msg)
+
+        level_channel = guild.get_channel(LEVEL_UP_CHANNEL_ID)
+        if level_channel:
+            await level_channel.send(msg)
 
         old_new = {
             2: (FRESH_MEAT, GAINING_TRACTION),
@@ -272,7 +277,9 @@ async def check_level_up(member, guild, user_data, channel):
                 await member.remove_roles(old_role)
             if new_role:
                 await member.add_roles(new_role)
-                await channel.send(f"{member.mention} was given the **{new_role.name}** role!")
+                if level_channel:
+                    await level_channel.send(f"{member.mention} was given the **{new_role.name}** role!")
+
 
 @bot.command()
 async def ping(ctx):
