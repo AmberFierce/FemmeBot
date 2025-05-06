@@ -236,7 +236,7 @@ async def on_message(message):
     user_data["xp"] += 250
     user_data["intro_bonus"] = True
     await check_level_up(message.author, message.guild, user_data, message.channel)
-else:
+    else:
     user_data["xp"] += random.randint(5, 15)
     await check_level_up(message.author, message.guild, user_data, message.channel)
 
