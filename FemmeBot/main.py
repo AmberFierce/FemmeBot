@@ -254,12 +254,16 @@ async def on_message(message):
 
 LEVEL_UP_CHANNEL_ID = 1369337415629803621  # 💫 #level-up — glow-up announcements live here
 
-async def check_level_up(member, guild, user_data, _):
+async def check_level_up(member, guild, user_data, channel):
     gid = str(guild.id)
-    current_level = user_data["level"]
-    required = get_level_xp(current_level)
 
-    if user_data["xp"] >= required:
+    while True:
+        current_level = user_data["level"]
+        required = get_level_xp(current_level)
+
+        if user_data["xp"] < required:
+            break
+
         user_data["level"] += 1
         user_data["xp"] -= required
         new_level = user_data["level"]
@@ -286,7 +290,8 @@ async def check_level_up(member, guild, user_data, _):
             if new_role:
                 await member.add_roles(new_role)
                 if level_channel:
-                    await level_channel.send(f"{member.mention} was given the **{new_role.name}** role!")
+                    await level_channel.send(f"{member.mention} was given the **{new_role.name}** role!")**_**_
+
 
 
 @bot.command()
