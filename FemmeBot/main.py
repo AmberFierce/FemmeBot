@@ -104,7 +104,7 @@ unlock_messages = {
         """🔓 Level 2 unlocked! – you're **gaining traction**!  
 You’ve stepped off the sidelines and into the glow-up. You now have access to:
 
-- <#1367154605079441489> – 🌸 Say hi, you gorgeous thing! Tell us about yourself and let us love you for it. This is your red carpet!  
+- <#1367147799929684109> – 🌸 Say hi, you gorgeous thing! Tell us about yourself and let us love you for it. This is your red carpet!  
 - <#1367160953224958083> – 🎯 Pick your flavour. Pronouns, gender, topics—claim what fits and unlock your side of the server.
 
 🎤 Posting your intro will give you enough XP to unlock Main Chat and the rest of the community. Go on — your spotlight’s waiting."""
