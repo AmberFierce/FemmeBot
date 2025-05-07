@@ -205,6 +205,57 @@ async def on_ready():
     bot.add_view(TicketButtonView())
     award_voice_xp.start()
 
+SUGGESTION_CHANNEL_ID = 1369680847619227719
+SUGGESTION_CATEGORY_ID = 1369680745714548836
+REGULAR_ROLE_ID = 1367149083952943186  # "Regular"
+SUGGESTION_EMOJI = "👍"
+SUGGESTION_THRESHOLD = 5
+
+def slugify_channel_name(text):
+    # Clean message into safe channel name
+    import re
+    slug = re.sub(r'[^a-zA-Z0-9\s-]', '', text.lower())
+    slug = re.sub(r'\s+', '-', slug).strip('-')
+    return slug[:95]  # Max Discord channel name length is 100
+
+@bot.event
+async def on_raw_reaction_add(payload):
+    if str(payload.emoji) != SUGGESTION_EMOJI:
+        return
+
+    if payload.channel_id != SUGGESTION_CHANNEL_ID:
+        return
+
+    guild = bot.get_guild(payload.guild_id)
+    channel = guild.get_channel(payload.channel_id)
+    message = await channel.fetch_message(payload.message_id)
+    author = message.author
+
+    # Check if author has Regular role
+    member = guild.get_member(author.id)
+    if REGULAR_ROLE_ID not in [role.id for role in member.roles]:
+        return  # Author is not allowed to make suggestions
+
+    # Count only matching emoji reactions
+    for reaction in message.reactions:
+        if str(reaction.emoji) == SUGGESTION_EMOJI:
+            if reaction.count >= SUGGESTION_THRESHOLD:
+                # Create the channel
+                channel_name = slugify_channel_name(message.content)
+                if discord.utils.get(guild.text_channels, name=channel_name):
+                    return  # Channel already exists
+
+                hobby_category = discord.utils.get(guild.categories, id=SUGGESTION_CATEGORY_ID)
+                new_channel = await guild.create_text_channel(
+                    name=channel_name,
+                    category=hobby_category,
+                    topic=f"Suggested by {author.display_name}"
+                )
+
+                await message.reply(f"💡 Popular idea! I've created <#{new_channel.id}> for you all 🎉")
+                break
+
+
 @bot.event
 async def on_member_join(member):
     role = member.guild.get_role(FRESH_MEAT)
