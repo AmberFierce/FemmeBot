@@ -522,8 +522,8 @@ async def birthday_check():
         if not member:
             continue
 
-        # Post in the system channel if possible
-        channel = guild.system_channel or next((c for c in guild.text_channels if c.permissions_for(guild.me).send_messages), None)
+        # Post in the #main channel if it exists
+        channel = discord.utils.get(guild.text_channels, name="main") or next((c for c in guild.text_channels if c.permissions_for(guild.me).send_messages), None).send_messages), None)
         if channel:
             await channel.send(f"🥳 Happy birthday {member.mention}! We hope your day is fabulous! 💖")
 
