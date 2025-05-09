@@ -297,26 +297,6 @@ class TicketButtonView(View):
         super().__init__(timeout=None)
         self.add_item(TicketButton())
 
-@bot.command()
-@commands.has_permissions(administrator=True)
-async def setup(ctx, subcommand=None):
-    if subcommand == "ticketbutton":
-        target_channel_id = os.getenv("NSFW_VERIFICATION_CHANNEL_ID")
-        if target_channel_id:
-            target_channel = bot.get_channel(int(target_channel_id))
-            if target_channel:
-                view = TicketButtonView()
-                await target_channel.send(
-                    "**NSFW Verification**\nClick below to create a private ticket for verification 📨",
-                    view=view
-                )
-                await ctx.send("✅ Ticket button sent.")
-            else:
-                await ctx.send("❌ Could not find target channel.")
-        else:
-            await ctx.send("❌ NSFW_VERIFICATION_CHANNEL_ID not set.")
-    else:
-        await ctx.send("Usage: `!setup ticketbutton`")
 
 @bot.event
 async def on_raw_reaction_add(payload):
