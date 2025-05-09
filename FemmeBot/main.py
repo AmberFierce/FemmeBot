@@ -485,9 +485,9 @@ async def leaderboard(ctx):
 # === Birthday Command ===
 @bot.command()
 async def setbirthday(ctx, date: str):
-    """Set your birthday using DD-MM-YYYY format."""
+    """Set your birthday using MM-DD format."""
     try:
-        parsed_date = datetime.strptime(date, "%d-%m-%Y").date()
+        parsed_date = datetime.strptime(date, "%m-%d").date().replace(year=2000)
     except ValueError:
         await ctx.send("❌ Please use the format DD-MM-YYYY.")
         return
@@ -501,7 +501,7 @@ async def setbirthday(ctx, date: str):
     """, str(ctx.author.id), str(ctx.guild.id), parsed_date)
     await conn.close()
 
-    await ctx.send(f"🎉 Birthday saved as {parsed_date.strftime('%d %B %Y')}!")
+    await ctx.send(f"🎉 Birthday saved as {parsed_date.strftime('%B %d')}!")
 
 # === Birthday Auto-Check Loop ===
 @tasks.loop(hours=24)
