@@ -482,6 +482,51 @@ async def leaderboard(ctx):
 
     await ctx.send(embed=embed)
 
+# === Birthday Command ===
+@bot.command()
+async def setbirthday(ctx, date: str):
+    """Set your birthday using DD-MM-YYYY format."""
+    try:
+        parsed_date = datetime.strptime(date, "%d-%m-%Y").date()
+    except ValueError:
+        await ctx.send("❌ Please use the format DD-MM-YYYY.")
+        return
+
+    conn = await connect_db()
+    await conn.execute("""
+        INSERT INTO user_birthdays (user_id, guild_id, birthday)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (user_id, guild_id)
+        DO UPDATE SET birthday = $3;
+    """, str(ctx.author.id), str(ctx.guild.id), parsed_date)
+    await conn.close()
+
+    await ctx.send(f"🎉 Birthday saved as {parsed_date.strftime('%d %B %Y')}!")
+
+# === Birthday Auto-Check Loop ===
+@tasks.loop(hours=24)
+async def birthday_check():
+    conn = await connect_db()
+    today = datetime.utcnow().date()
+    rows = await conn.fetch("""
+        SELECT user_id, guild_id FROM user_birthdays
+        WHERE EXTRACT(MONTH FROM birthday) = $1 AND EXTRACT(DAY FROM birthday) = $2;
+    """, today.month, today.day)
+    await conn.close()
+
+    for row in rows:
+        guild = bot.get_guild(int(row["guild_id"]))
+        if not guild:
+            continue
+        member = guild.get_member(int(row["user_id"]))
+        if not member:
+            continue
+
+        # Post in the system channel if possible
+        channel = guild.system_channel or next((c for c in guild.text_channels if c.permissions_for(guild.me).send_messages), None)
+        if channel:
+            await channel.send(f"🥳 Happy birthday {member.mention}! We hope your day is fabulous! 💖")
+
 # === Final Launch ===
 if __name__ == "__main__":
     TOKEN = os.getenv("DISCORD_TOKEN")
