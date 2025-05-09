@@ -523,9 +523,19 @@ async def birthday_check():
             continue
 
         # Post in the #main channel if it exists
-        channel = discord.utils.get(guild.text_channels, name="main") or next((c for c in guild.text_channels if c.permissions_for(guild.me).send_messages), None).send_messages), None)
+        channel = discord.utils.get(guild.text_channels, name="main") or next((c for c in guild.text_channels if c.permissions_for(guild.me).send_messages), None)
         if channel:
-            await channel.send(f"🥳 Happy birthday {member.mention}! We hope your day is fabulous! 💖")
+            await channel.send(f"🥳 Happy birthday {member.mention}! We hope your day is fabulous! 💖").send_messages), None)
+    birthday_check.start()
+    print(f"Bot is ready as {bot.user}")
+
+# === Final Launch ===
+if __name__ == "__main__":
+    TOKEN = os.getenv("DISCORD_TOKEN")
+    if not TOKEN:
+        print("❌ DISCORD_TOKEN not found in environment variables.")
+    else:
+        bot.run(TOKEN)
 
 # === Final Launch ===
 if __name__ == "__main__":
