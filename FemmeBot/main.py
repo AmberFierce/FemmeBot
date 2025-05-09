@@ -525,7 +525,7 @@ async def birthday_check():
         # Post in the #main channel if it exists
         channel = discord.utils.get(guild.text_channels, name="main") or next((c for c in guild.text_channels if c.permissions_for(guild.me).send_messages), None)
         if channel:
-            await channel.send(f"🥳 Happy birthday {member.mention}! We hope your day is fabulous! 💖").send_messages), None)
+            await channel.send(f"🥳 Happy birthday {member.mention}! We hope your day is fabulous! 💖")
     birthday_check.start()
     print(f"Bot is ready as {bot.user}")
 
