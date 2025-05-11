@@ -86,8 +86,10 @@ async def ping(ctx):
 @bot.command()
 @commands.has_permissions(manage_guild=True)
 async def setlevel(ctx, member: discord.Member, level: int):
+    # Set level to desired value and 0 XP, then re-run level logic
     await set_user_data(ctx.guild.id, member.id, 0, level, False)
-    await ctx.send(f"✅ Set {member.mention}'s level to {level} with 0 XP.")
+    await check_level_up(member, ctx.guild)
+    await ctx.send(f"✅ Set {member.mention}'s level to {level} and applied rewards/messages if applicable.")
 
 @bot.command()
 async def level(ctx, member: discord.Member = None):
