@@ -161,25 +161,25 @@ async def check_level_up(member, guild):
     data = await get_user_data(guild_id, user_id)
     xp = data["xp"]
     level = data["level"]
+    intro_bonus = data["intro_bonus"]
+
+    level_channel_id = os.getenv("LEVEL_UP_CHANNEL_ID")
+    level_channel = guild.get_channel(int(level_channel_id)) if level_channel_id else None
 
     while xp >= get_level_xp(level):
         xp -= get_level_xp(level)
         level += 1
-        await set_user_data(guild_id, user_id, xp, level, data["intro_bonus"])
+
+        await set_user_data(guild_id, user_id, xp, level, intro_bonus)
 
         msg = f"{member.mention} is now level {level}!"
 
-        # Unlock message
+        # Check for role unlocks
         if level in level_roles:
             role_env, unlock_msg = level_roles[level]
             msg += f"\n{unlock_msg}"
-            level_channel_id = os.getenv("LEVEL_UP_CHANNEL_ID")
-            if level_channel_id:
-                channel = guild.get_channel(int(level_channel_id))
-                if channel:
-                    await channel.send(msg)
 
-            # Apply role and remove previous
+            # Remove old role if needed
             old_level = level - 1
             if old_level in level_roles:
                 old_role_id = os.getenv(level_roles[old_level][0])
@@ -188,13 +188,16 @@ async def check_level_up(member, guild):
                     if old_role:
                         await member.remove_roles(old_role)
 
+            # Add new role
             new_role_id = os.getenv(role_env)
             if new_role_id:
                 new_role = guild.get_role(int(new_role_id))
                 if new_role:
                     await member.add_roles(new_role)
-                    if channel:
-                        await channel.send(f"{member.mention} was given the **{new_role.name}** role!")
+                    msg += f"\n{member.mention} was given the **{new_role.name}** role!"
+
+        if level_channel:
+            await level_channel.send(msg)
 
 @bot.event
 async def on_member_join(member):
