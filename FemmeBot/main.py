@@ -305,9 +305,7 @@ async def setup(ctx, subcommand=None, *args):
         except Exception as e:
             await ctx.send(f"❌ Failed to add reaction role: {e}")
     else:
-        await ctx.send("Usage:
-!setup ticketbutton
-!setup reactionrole <message_id> <emoji> <role name>")
+        await ctx.send("Usage:\n!setup ticketbutton\n!setup reactionrole <message_id> <emoji> <role name>")
 
 # === Reaction Role and Suggestion Events ===
 
