@@ -33,6 +33,7 @@ bot = commands.Bot(command_prefix=os.getenv("BOT_PREFIX", "!"), intents=intents)
 print(f"✅ Bot prefix set to: {bot.command_prefix}")
 
 cooldowns = {}
+reaction_roles = {}
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 # === PostgreSQL helpers ===
@@ -49,30 +50,6 @@ async def get_user_data(guild_id, user_id):
     if row:
         return dict(row)
     return {"xp": 0, "level": 1, "intro_bonus": False}
-
-async def add_reaction_role(guild_id, message_id, emoji, role_name):
-    conn = await connect_db()
-    await conn.execute("""
-        INSERT INTO reaction_roles (guild_id, message_id, emoji, role_name)
-        VALUES ($1, $2, $3, $4)
-        ON CONFLICT (guild_id, message_id, emoji) DO UPDATE
-        SET role_name = EXCLUDED.role_name;
-    """, str(guild_id), str(message_id), emoji, role_name)
-    await conn.close()
-
-async def load_reaction_roles():
-    conn = await connect_db()
-    rows = await conn.fetch("SELECT guild_id, message_id, emoji, role_name FROM reaction_roles;")
-    await conn.close()
-
-    result = {}
-    for row in rows:
-        g_id = row["guild_id"]
-        m_id = row["message_id"]
-        emoji = row["emoji"]
-        role = row["role_name"]
-        result.setdefault(g_id, {}).setdefault(m_id, {})[emoji] = role
-    return result
 
 async def set_user_data(guild_id, user_id, xp, level, intro_bonus):
     conn = await connect_db()
@@ -99,145 +76,43 @@ async def force_intro_bonus(guild_id, user_id):
         return True
     return False
 
+async def add_reaction_role(guild_id, message_id, emoji, role_name):
+    conn = await connect_db()
+    await conn.execute("""
+        INSERT INTO reaction_roles (guild_id, message_id, emoji, role_name)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (guild_id, message_id, emoji) DO UPDATE
+        SET role_name = EXCLUDED.role_name;
+    """, str(guild_id), str(message_id), emoji, role_name)
+    await conn.close()
+
+async def load_reaction_roles():
+    conn = await connect_db()
+    rows = await conn.fetch("SELECT guild_id, message_id, emoji, role_name FROM reaction_roles;")
+    await conn.close()
+    result = {}
+    for row in rows:
+        g_id = row["guild_id"]
+        m_id = row["message_id"]
+        emoji = row["emoji"]
+        role = row["role_name"]
+        result.setdefault(g_id, {}).setdefault(m_id, {})[emoji] = role
+    return result
+
 # === XP logic ===
 def get_level_xp(level):
     return 5 * (level**2) + 50 * level + 100
 
-@bot.command()
-async def ping(ctx):
-    await ctx.send(f"Pong! 🏓 {round(bot.latency * 1000)}ms")
-
-@bot.command()
-@commands.has_permissions(manage_guild=True)
-async def setlevel(ctx, member: discord.Member, level: int):
-    # Set level to desired value and 0 XP, then re-run level logic
-    await set_user_data(ctx.guild.id, member.id, 0, level, False)
-    await check_level_up(member, ctx.guild)
-    await ctx.send(f"✅ Set {member.mention}'s level to {level} and applied rewards/messages if applicable.")
-
-@bot.command()
-async def level(ctx, member: discord.Member = None):
-    member = member or ctx.author
-    data = await get_user_data(ctx.guild.id, member.id)
-    current = data['level']
-    xp = data['xp']
-    needed = get_level_xp(current)
-    await ctx.send(f"{member.mention} is level {current} with {xp}/{needed} XP.")
-
-@bot.command()
-@commands.has_permissions(manage_guild=True)
-async def givexp(ctx, member: discord.Member, amount: int):
-    xp, level, _ = await add_xp(ctx.guild.id, member.id, amount)
-    await ctx.send(f"✅ Gave {amount} XP to {member.mention}. They now have {xp} XP at level {level}.")
-
-@bot.command()
-@commands.has_permissions(administrator=True)
-async def introbonus(ctx):
-    found = []
-    for member in ctx.guild.members:
-        if member.bot:
-            continue
-        data = await get_user_data(ctx.guild.id, member.id)
-        if data.get("intro_bonus"):
-            found.append(member.display_name)
-    if found:
-        await ctx.send("✅ Users with `intro_bonus = True`:\n" + "\n".join(found))
-    else:
-        await ctx.send("No users have claimed the intro bonus yet.")
-
-@bot.event
-async def on_message(message):
-    if message.author.bot or not message.guild:
-        return
-
-    guild_id = message.guild.id
-    user_id = message.author.id
-    now = datetime.utcnow()
-    key = f"{guild_id}-{user_id}"
-
-    if key in cooldowns and (now - cooldowns[key]).total_seconds() < 60:
-        await bot.process_commands(message)
-        return
-
-    cooldowns[key] = now
-
-    intro_channel = os.getenv("INTRO_CHANNEL_ID")
-    if intro_channel and message.channel.id == int(intro_channel):
-        await force_intro_bonus(guild_id, user_id)
-    else:
-        await add_xp(guild_id, user_id, random.randint(5, 15))
-
-    await bot.process_commands(message)
-
 @bot.event
 async def on_ready():
-    print(f"Bot is ready as {bot.user}")
+    global reaction_roles
     keep_alive()
     bot.add_view(TicketButtonView())
     reaction_roles = await load_reaction_roles()
     print("✅ Reaction roles loaded from database.")
     print(f"Bot is ready as {bot.user}")
 
-# === Unlock messages and role rewards ===
-level_roles = {
-    2: ("GAINING_TRACTION_ROLE_ID", "🔓 Level 2 unlocked! – you're **gaining traction**!\nYou now have access to intros and pronoun roles."),
-    3: ("NEW_FACE_ROLE_ID", "✨ Level 3 achieved — you’re now a **New Face**!\nAccess to main chat and beauty/style channels granted."),
-    8: ("REGULAR_ROLE_ID", "🔥 Level 8 unlocked — you’re officially a **Regular**!\nWelcome to selfies and NSFW verification.")
-}
-
-async def check_level_up(member, guild):
-    user_id = member.id
-    guild_id = guild.id
-    data = await get_user_data(guild_id, user_id)
-    xp = data["xp"]
-    level = data["level"]
-    intro_bonus = data["intro_bonus"]
-
-    level_channel_id = os.getenv("LEVEL_UP_CHANNEL_ID")
-    level_channel = guild.get_channel(int(level_channel_id)) if level_channel_id else None
-
-    while xp >= get_level_xp(level):
-        xp -= get_level_xp(level)
-        level += 1
-
-        await set_user_data(guild_id, user_id, xp, level, intro_bonus)
-
-        msg = f"{member.mention} is now level {level}!"
-
-        # Check for role unlocks
-        if level in level_roles:
-            role_env, unlock_msg = level_roles[level]
-            msg += f"\n{unlock_msg}"
-
-            # Remove old role if needed
-            old_level = level - 1
-            if old_level in level_roles:
-                old_role_id = os.getenv(level_roles[old_level][0])
-                if old_role_id:
-                    old_role = guild.get_role(int(old_role_id))
-                    if old_role:
-                        await member.remove_roles(old_role)
-
-            # Add new role
-            new_role_id = os.getenv(role_env)
-            if new_role_id:
-                new_role = guild.get_role(int(new_role_id))
-                if new_role:
-                    await member.add_roles(new_role)
-                    msg += f"\n{member.mention} was given the **{new_role.name}** role!"
-
-        if level_channel:
-            await level_channel.send(msg)
-
-@bot.event
-async def on_member_join(member):
-    role_id = os.getenv("FRESH_MEAT_ROLE_ID")
-    if role_id:
-        role = member.guild.get_role(int(role_id))
-        if role:
-            await member.add_roles(role)
-
-# Hook check_level_up into XP gain
+# === Message Event ===
 @bot.event
 async def on_message(message):
     if message.author.bot or not message.guild:
@@ -265,13 +140,59 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-# === NSFW Ticket System ===
+# === Unlock messages and role rewards ===
+level_roles = {
+    2: ("GAINING_TRACTION_ROLE_ID", "🔓 Level 2 unlocked! – you're **gaining traction**!\nYou now have access to intros and pronoun roles."),
+    3: ("NEW_FACE_ROLE_ID", "✨ Level 3 achieved — you’re now a **New Face**!\nAccess to main chat and beauty/style channels granted."),
+    8: ("REGULAR_ROLE_ID", "🔥 Level 8 unlocked — you’re officially a **Regular**!\nWelcome to selfies and NSFW verification.")
+}
+
+async def check_level_up(member, guild):
+    user_id = member.id
+    guild_id = guild.id
+    data = await get_user_data(guild_id, user_id)
+    xp = data["xp"]
+    level = data["level"]
+    intro_bonus = data["intro_bonus"]
+
+    level_channel_id = os.getenv("LEVEL_UP_CHANNEL_ID")
+    level_channel = guild.get_channel(int(level_channel_id)) if level_channel_id else None
+
+    while xp >= get_level_xp(level):
+        xp -= get_level_xp(level)
+        level += 1
+        await set_user_data(guild_id, user_id, xp, level, intro_bonus)
+
+        msg = f"{member.mention} is now level {level}!"
+
+        if level in level_roles:
+            role_env, unlock_msg = level_roles[level]
+            msg += f"
+{unlock_msg}"
+
+            old_level = level - 1
+            if old_level in level_roles:
+                old_role_id = os.getenv(level_roles[old_level][0])
+                if old_role_id:
+                    old_role = guild.get_role(int(old_role_id))
+                    if old_role:
+                        await member.remove_roles(old_role)
+
+            new_role_id = os.getenv(role_env)
+            if new_role_id:
+                new_role = guild.get_role(int(new_role_id))
+                if new_role:
+                    await member.add_roles(new_role)
+                    msg += f"
+{member.mention} was given the **{new_role.name}** role!"
+
+        if level_channel:
+            await level_channel.send(msg)
+
+# === Ticket Button View ===
 class TicketButton(Button):
     def __init__(self):
-        super().__init__(label="Open NSFW Verification Ticket",
-                         style=discord.ButtonStyle.green,
-                         emoji="📩",
-                         custom_id="nsfw_ticket_button")
+        super().__init__(label="Open NSFW Verification Ticket", style=discord.ButtonStyle.green, emoji="📩", custom_id="nsfw_ticket_button")
 
     async def callback(self, interaction: discord.Interaction):
         guild = interaction.guild
@@ -313,8 +234,8 @@ class TicketButton(Button):
         )
 
         await channel.send(
-            f"👋 Hi {user.mention}! Please upload your verification photo here.\n"
-            f"A mod will review it shortly. Once done, they'll close the ticket with a ✅.",
+            f"👋 Hi {user.mention}! Please upload your verification photo here.
+A mod will review it shortly. Once done, they'll close the ticket with a ✅.",
             allowed_mentions=discord.AllowedMentions(users=True)
         )
 
@@ -330,16 +251,7 @@ class TicketButtonView(View):
         super().__init__(timeout=None)
         self.add_item(TicketButton())
 
-
-@bot.event
-async def on_ready():
-    keep_alive()
-    bot.add_view(TicketButtonView())
-    print(f"Bot is ready as {bot.user}")
-
-# === Reaction Role Setup ===
-reaction_roles = {}
-
+# === Setup Command ===
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def setup(ctx, subcommand=None, *args):
@@ -349,7 +261,7 @@ async def setup(ctx, subcommand=None, *args):
             target_channel = bot.get_channel(int(target_channel_id))
             if target_channel:
                 view = TicketButtonView()
-                await target_channel.send(
+               await target_channel.send(
                     "**NSFW Verification**\nClick below to create a private ticket for verification 📨",
                     view=view
                 )
@@ -371,15 +283,17 @@ async def setup(ctx, subcommand=None, *args):
         try:
             message = await ctx.channel.fetch_message(int(message_id))
             reaction_roles.setdefault(str(ctx.guild.id), {}).setdefault(message_id, {})[emoji] = role_name
-		await add_reaction_role(ctx.guild.id, message_id, emoji, role_name)
-		await message.add_reaction(emoji)
-		await ctx.send(f"✅ Reaction role added: {emoji} → {role_name}")
+            await add_reaction_role(ctx.guild.id, message_id, emoji, role_name)
+            await message.add_reaction(emoji)
+            await ctx.send(f"✅ Reaction role added: {emoji} → {role_name}")
         except Exception as e:
             await ctx.send(f"❌ Failed to add reaction role: {e}")
-
     else:
-        await ctx.send("Usage:\n!setup ticketbutton\n!setup reactionrole <message_id> <emoji> <role name>")
+        await ctx.send("Usage:
+!setup ticketbutton
+!setup reactionrole <message_id> <emoji> <role name>")
 
+# === Fully Merged on_raw_reaction_add ===
 @bot.event
 async def on_raw_reaction_add(payload):
     guild = bot.get_guild(payload.guild_id)
@@ -389,62 +303,40 @@ async def on_raw_reaction_add(payload):
     message_id = str(payload.message_id)
     guild_id = str(payload.guild_id)
 
-    # === ✅ Ticket Close Handler ===
     if channel and channel.name.startswith("ticket-") and emoji == "✅":
         await channel.send("✅ Ticket closed. This channel will now be deleted.")
-
         log_channel_id = os.getenv("NSFW_VERIFICATION_LOG_ID")
         if log_channel_id:
             log_channel = guild.get_channel(int(log_channel_id))
             if log_channel:
                 await log_channel.send(f"✅ Ticket for **{member.display_name}** has been closed.")
-
         await channel.delete()
-        return  # Exit early so it doesn't fall through to other handlers
+        return
 
-    # === 🎭 Reaction Roles Handler ===
     if guild_id in reaction_roles and message_id in reaction_roles[guild_id]:
         role_name = reaction_roles[guild_id][message_id].get(emoji)
         if role_name:
             role = discord.utils.get(guild.roles, name=role_name)
             if role and member:
                 await member.add_roles(role)
-                print(f"✅ Added role {role_name} to {member.display_name}")
 
-    # === 💡 Suggestion System Handler ===
     if emoji == "👍":
         suggestion_channel = os.getenv("SUGGESTION_CHANNEL_ID")
         suggestion_category = os.getenv("SUGGESTION_CATEGORY_ID")
         suggestion_threshold = int(os.getenv("SUGGESTION_THRESHOLD", 5))
-
         if suggestion_channel and suggestion_category and str(payload.channel_id) == suggestion_channel:
             message = await channel.fetch_message(payload.message_id)
-            author = guild.get_member(message.author.id)
-
             for reaction in message.reactions:
                 if str(reaction.emoji) == "👍" and reaction.count >= suggestion_threshold:
                     slug = message.content.lower().replace(" ", "-")[:95]
                     existing = discord.utils.get(guild.text_channels, name=slug)
-                    if existing:
-                        return
-                    category = discord.utils.get(guild.categories, id=int(suggestion_category))
-                    new_channel = await guild.create_text_channel(name=slug, category=category)
-                    await message.reply(f"💡 Popular idea! I've created <#{new_channel.id}> for you all 🎉")
+                    if not existing:
+                        category = discord.utils.get(guild.categories, id=int(suggestion_category))
+                        new_channel = await guild.create_text_channel(name=slug, category=category)
+                        await message.reply(f"💡 Popular idea! I've created <#{new_channel.id}> for you all 🎉")
                     break
 
-    # Reaction role add
-    guild_id = str(payload.guild_id)
-    message_id = str(payload.message_id)
-    emoji = str(payload.emoji)
-    if guild_id in reaction_roles and message_id in reaction_roles[guild_id]:
-        role_name = reaction_roles[guild_id][message_id].get(emoji)
-        if role_name:
-            guild = bot.get_guild(payload.guild_id)
-            role = discord.utils.get(guild.roles, name=role_name)
-            member = guild.get_member(payload.user_id)
-            if role and member:
-                await member.add_roles(role)
-
+# === Reaction Role Remove ===
 @bot.event
 async def on_raw_reaction_remove(payload):
     guild_id = str(payload.guild_id)
@@ -459,59 +351,44 @@ async def on_raw_reaction_remove(payload):
             if role and member:
                 await member.remove_roles(role)
 
-# === Suggestion System ===
-@bot.event
-async def on_raw_reaction_add(payload):
-    if str(payload.emoji) != "👍":
-        return
-
-    suggestion_channel = os.getenv("SUGGESTION_CHANNEL_ID")
-    suggestion_category = os.getenv("SUGGESTION_CATEGORY_ID")
-    suggestion_threshold = int(os.getenv("SUGGESTION_THRESHOLD", 5))
-
-    if not suggestion_channel or not suggestion_category:
-        return
-
-    if str(payload.channel_id) != suggestion_channel:
-        return
-
-    guild = bot.get_guild(payload.guild_id)
-    channel = guild.get_channel(payload.channel_id)
-    message = await channel.fetch_message(payload.message_id)
-    member = guild.get_member(message.author.id)
-
-    if not member:
-        return
-
-    for reaction in message.reactions:
-        if str(reaction.emoji) == "👍" and reaction.count >= suggestion_threshold:
-            slug = message.content.lower().replace(" ", "-")[:95]
-            existing = discord.utils.get(guild.text_channels, name=slug)
-            if existing:
-                return
-            category = discord.utils.get(guild.categories, id=int(suggestion_category))
-            new_channel = await guild.create_text_channel(name=slug, category=category)
-            await message.reply(f"💡 Popular idea! I've created <#{new_channel.id}> for you all 🎉")
-            break
-			
-# === Purge Command ===
+# === Commands: Ping, Level, etc ===
 @bot.command()
-@commands.has_permissions(manage_messages=True)
-async def purge(ctx, amount: int):
-    if amount < 1:
-        await ctx.send("Please enter a number greater than 0.")
-        return
+async def ping(ctx):
+    await ctx.send(f"Pong! 🏓 {round(bot.latency * 1000)}ms")
 
-    try:
-        deleted = await ctx.channel.purge(limit=amount + 1)
-        confirm = await ctx.send(f"🧹 Deleted {len(deleted)-1} messages.")
-        await confirm.delete(delay=5)
-    except discord.Forbidden:
-        await ctx.send("❌ I don't have permission to manage messages here.")
-    except Exception as e:
-        await ctx.send(f"⚠️ Error: {e}")
+@bot.command()
+@commands.has_permissions(manage_guild=True)
+async def setlevel(ctx, member: discord.Member, level: int):
+    await set_user_data(ctx.guild.id, member.id, 0, level, False)
+    await check_level_up(member, ctx.guild)
+    await ctx.send(f"✅ Set {member.mention}'s level to {level} and applied rewards/messages if applicable.")
 
-# === Leaderboard ===
+@bot.command()
+async def level(ctx, member: discord.Member = None):
+    member = member or ctx.author
+    data = await get_user_data(ctx.guild.id, member.id)
+    await ctx.send(f"{member.mention} is level {data['level']} with {data['xp']}/{get_level_xp(data['level'])} XP.")
+
+@bot.command()
+@commands.has_permissions(manage_guild=True)
+async def givexp(ctx, member: discord.Member, amount: int):
+    xp, level, _ = await add_xp(ctx.guild.id, member.id, amount)
+    await ctx.send(f"✅ Gave {amount} XP to {member.mention}. They now have {xp} XP at level {level}.")
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def introbonus(ctx):
+    found = []
+    for member in ctx.guild.members:
+        if member.bot:
+            continue
+        data = await get_user_data(ctx.guild.id, member.id)
+        if data.get("intro_bonus"):
+            if found:
+        await ctx.send("✅ Users with `intro_bonus = True`:\n" + "\n".join(found))
+    else:
+        await ctx.send("No users have claimed the intro bonus yet.")
+
 @bot.command()
 async def leaderboard(ctx):
     conn = await connect_db()
@@ -535,14 +412,12 @@ async def leaderboard(ctx):
 
     await ctx.send(embed=embed)
 
-# === Birthday Command ===
 @bot.command()
 async def setbirthday(ctx, date: str):
-    """Set your birthday using MM-DD format."""
     try:
         parsed_date = datetime.strptime(date, "%m-%d").date().replace(year=2000)
     except ValueError:
-        await ctx.send("❌ Please use the format DD-MM-YYYY.")
+        await ctx.send("❌ Please use the format MM-DD.")
         return
 
     conn = await connect_db()
@@ -553,10 +428,8 @@ async def setbirthday(ctx, date: str):
         DO UPDATE SET birthday = $3;
     """, str(ctx.author.id), str(ctx.guild.id), parsed_date)
     await conn.close()
-
     await ctx.send(f"🎉 Birthday saved as {parsed_date.strftime('%B %d')}!")
 
-# === Birthday Auto-Check Loop ===
 @tasks.loop(hours=24)
 async def birthday_check():
     conn = await connect_db()
@@ -566,7 +439,6 @@ async def birthday_check():
         WHERE EXTRACT(MONTH FROM birthday) = $1 AND EXTRACT(DAY FROM birthday) = $2;
     """, today.month, today.day)
     await conn.close()
-
     for row in rows:
         guild = bot.get_guild(int(row["guild_id"]))
         if not guild:
@@ -574,21 +446,24 @@ async def birthday_check():
         member = guild.get_member(int(row["user_id"]))
         if not member:
             continue
-
-        # Post in the #main channel if it exists
         channel = discord.utils.get(guild.text_channels, name="main") or next((c for c in guild.text_channels if c.permissions_for(guild.me).send_messages), None)
         if channel:
             await channel.send(f"🥳 Happy birthday {member.mention}! We hope your day is fabulous! 💖")
-    birthday_check.start()
-    print(f"Bot is ready as {bot.user}")
 
-# === Final Launch ===
-if __name__ == "__main__":
-    TOKEN = os.getenv("DISCORD_TOKEN")
-    if not TOKEN:
-        print("❌ DISCORD_TOKEN not found in environment variables.")
-    else:
-        bot.run(TOKEN)
+@bot.command()
+@commands.has_permissions(manage_messages=True)
+async def purge(ctx, amount: int):
+    if amount < 1:
+        await ctx.send("Please enter a number greater than 0.")
+        return
+    try:
+        deleted = await ctx.channel.purge(limit=amount + 1)
+        confirm = await ctx.send(f"🧹 Deleted {len(deleted)-1} messages.")
+        await confirm.delete(delay=5)
+    except discord.Forbidden:
+        await ctx.send("❌ I don't have permission to manage messages here.")
+    except Exception as e:
+        await ctx.send(f"⚠️ Error: {e}")
 
 # === Final Launch ===
 if __name__ == "__main__":
