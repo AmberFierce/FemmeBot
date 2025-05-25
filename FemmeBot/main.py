@@ -304,24 +304,6 @@ class TicketButtonView(View):
 
 
 @bot.event
-async def on_raw_reaction_add(payload):
-    if str(payload.emoji) == "✅":
-        guild = bot.get_guild(payload.guild_id)
-        channel = guild.get_channel(payload.channel_id)
-        user = guild.get_member(payload.user_id)
-
-        if channel and channel.name.startswith("ticket-"):
-            await channel.send("✅ Ticket closed. This channel will now be deleted.")
-
-            log_channel_id = os.getenv("NSFW_VERIFICATION_LOG_ID")
-            if log_channel_id:
-                log_channel = guild.get_channel(int(log_channel_id))
-                if log_channel:
-                    await log_channel.send(f"✅ Ticket for **{user.display_name}** has been closed.")
-
-            await channel.delete()
-
-@bot.event
 async def on_ready():
     keep_alive()
     bot.add_view(TicketButtonView())
@@ -371,18 +353,55 @@ async def setup(ctx, subcommand=None, *args):
 
 @bot.event
 async def on_raw_reaction_add(payload):
-    if str(payload.emoji) == "✅":
-        guild = bot.get_guild(payload.guild_id)
-        channel = guild.get_channel(payload.channel_id)
-        user = guild.get_member(payload.user_id)
-        if channel and channel.name.startswith("ticket-"):
-            await channel.send("✅ Ticket closed. This channel will now be deleted.")
-            log_channel_id = os.getenv("NSFW_VERIFICATION_LOG_ID")
-            if log_channel_id:
-                log_channel = guild.get_channel(int(log_channel_id))
-                if log_channel:
-                    await log_channel.send(f"✅ Ticket for **{user.display_name}** has been closed.")
-            await channel.delete()
+    guild = bot.get_guild(payload.guild_id)
+    channel = guild.get_channel(payload.channel_id)
+    member = guild.get_member(payload.user_id)
+    emoji = str(payload.emoji)
+    message_id = str(payload.message_id)
+    guild_id = str(payload.guild_id)
+
+    # === ✅ Ticket Close Handler ===
+    if channel and channel.name.startswith("ticket-") and emoji == "✅":
+        await channel.send("✅ Ticket closed. This channel will now be deleted.")
+
+        log_channel_id = os.getenv("NSFW_VERIFICATION_LOG_ID")
+        if log_channel_id:
+            log_channel = guild.get_channel(int(log_channel_id))
+            if log_channel:
+                await log_channel.send(f"✅ Ticket for **{member.display_name}** has been closed.")
+
+        await channel.delete()
+        return  # Exit early so it doesn't fall through to other handlers
+
+    # === 🎭 Reaction Roles Handler ===
+    if guild_id in reaction_roles and message_id in reaction_roles[guild_id]:
+        role_name = reaction_roles[guild_id][message_id].get(emoji)
+        if role_name:
+            role = discord.utils.get(guild.roles, name=role_name)
+            if role and member:
+                await member.add_roles(role)
+                print(f"✅ Added role {role_name} to {member.display_name}")
+
+    # === 💡 Suggestion System Handler ===
+    if emoji == "👍":
+        suggestion_channel = os.getenv("SUGGESTION_CHANNEL_ID")
+        suggestion_category = os.getenv("SUGGESTION_CATEGORY_ID")
+        suggestion_threshold = int(os.getenv("SUGGESTION_THRESHOLD", 5))
+
+        if suggestion_channel and suggestion_category and str(payload.channel_id) == suggestion_channel:
+            message = await channel.fetch_message(payload.message_id)
+            author = guild.get_member(message.author.id)
+
+            for reaction in message.reactions:
+                if str(reaction.emoji) == "👍" and reaction.count >= suggestion_threshold:
+                    slug = message.content.lower().replace(" ", "-")[:95]
+                    existing = discord.utils.get(guild.text_channels, name=slug)
+                    if existing:
+                        return
+                    category = discord.utils.get(guild.categories, id=int(suggestion_category))
+                    new_channel = await guild.create_text_channel(name=slug, category=category)
+                    await message.reply(f"💡 Popular idea! I've created <#{new_channel.id}> for you all 🎉")
+                    break
 
     # Reaction role add
     guild_id = str(payload.guild_id)
