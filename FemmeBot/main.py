@@ -50,6 +50,30 @@ async def get_user_data(guild_id, user_id):
         return dict(row)
     return {"xp": 0, "level": 1, "intro_bonus": False}
 
+async def add_reaction_role(guild_id, message_id, emoji, role_name):
+    conn = await connect_db()
+    await conn.execute("""
+        INSERT INTO reaction_roles (guild_id, message_id, emoji, role_name)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (guild_id, message_id, emoji) DO UPDATE
+        SET role_name = EXCLUDED.role_name;
+    """, str(guild_id), str(message_id), emoji, role_name)
+    await conn.close()
+
+async def load_reaction_roles():
+    conn = await connect_db()
+    rows = await conn.fetch("SELECT guild_id, message_id, emoji, role_name FROM reaction_roles;")
+    await conn.close()
+
+    result = {}
+    for row in rows:
+        g_id = row["guild_id"]
+        m_id = row["message_id"]
+        emoji = row["emoji"]
+        role = row["role_name"]
+        result.setdefault(g_id, {}).setdefault(m_id, {})[emoji] = role
+    return result
+
 async def set_user_data(guild_id, user_id, xp, level, intro_bonus):
     conn = await connect_db()
     await conn.execute("""
@@ -149,6 +173,10 @@ async def on_message(message):
 async def on_ready():
     print(f"Bot is ready as {bot.user}")
     keep_alive()
+    bot.add_view(TicketButtonView())
+    reaction_roles = await load_reaction_roles()
+    print("✅ Reaction roles loaded from database.")
+    print(f"Bot is ready as {bot.user}")
 
 # === Unlock messages and role rewards ===
 level_roles = {
