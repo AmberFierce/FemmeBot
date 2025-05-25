@@ -250,8 +250,8 @@ class TicketButton(Button):
         )
 
         await channel.send(
-            f"👋 Hi {user.mention}! Please upload your verification photo here.
-A mod will review it shortly. Once done, they'll close the ticket with a ✅.",
+            await channel.send(
+    f"👋 Hi {user.mention}! Please upload your verification photo here.\\nA mod will review it shortly. Once done, they'll close the ticket with a ✅.",
             allowed_mentions=discord.AllowedMentions(users=True)
         )
 
