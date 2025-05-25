@@ -371,9 +371,9 @@ async def setup(ctx, subcommand=None, *args):
         try:
             message = await ctx.channel.fetch_message(int(message_id))
             reaction_roles.setdefault(str(ctx.guild.id), {}).setdefault(message_id, {})[emoji] = role_name
-	    await add_reaction_role(ctx.guild.id, message_id, emoji, role_name)
-            await message.add_reaction(emoji)
-            await ctx.send(f"✅ Reaction role added: {emoji} → {role_name}")
+		await add_reaction_role(ctx.guild.id, message_id, emoji, role_name)
+		await message.add_reaction(emoji)
+		await ctx.send(f"✅ Reaction role added: {emoji} → {role_name}")
         except Exception as e:
             await ctx.send(f"❌ Failed to add reaction role: {e}")
 
